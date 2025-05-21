@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	user "github.com/Ghaby-X/tasork/internal/handlers"
+	handler "github.com/Ghaby-X/tasork/internal/handlers"
 	"github.com/Ghaby-X/tasork/internal/services"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -44,9 +44,12 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	// Defining user routes
-	userHandler := user.NewHandler(app.service.Users)
+	userHandler := handler.NewUserHandler(app.service.Users)
 	userHandler.RegisterRoutes(r)
 
+	// Defining task routes
+	taskHandler := handler.NewTaskHandler(app.service.Tasks)
+	taskHandler.RegisterRoutes(r)
 	return r
 }
 

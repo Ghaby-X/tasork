@@ -2,25 +2,28 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"time"
+	"fmt"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/lpernett/godotenv"
 )
 
-func NewMySQLDB(addr string) (*sql.DB, error) {
-	db, err := sql.Open("mysql", addr)
+// function to create a new dynamodb client
+func NewDynamoDbClient(aws_region string) (*dynamodb.Client, error) {
+	// load environment variables containing aws credentials
+	err := godotenv.Load()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load env variables: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// ping database to test connection
-	if err = db.PingContext(ctx); err != nil {
-		return nil, err
+	// configuration for dynamodb NewDynamoDbClient
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(aws_region))
+	if err != nil {
+		return nil, fmt.Errorf("unable to load AWS SDK config: %w", err)
 	}
 
-	return db, nil
+	client := dynamodb.NewFromConfig(cfg)
+
+	return client, nil
 }

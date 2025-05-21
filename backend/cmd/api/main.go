@@ -17,36 +17,25 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	// define server configuration
-	cfg := config{
-		addr: env.GetString("ADDR", ":8080"),
-		db: dbConfig{
-			env.GetString("DB_ADDR", "root:root@tcp(localhost:3307)/tasork_db"),
-			env.GetInt("DB_MAX_OPEN_CONNS", 30),
-			env.GetInt("DB_MAX_IDLE_CONNS", 30),
-			env.GetString("DB_MAX_IDLE_TIME", "15m"),
-		},
-	}
-
-	// create database instance
-	db, err := db.NewMySQLDB(cfg.db.addr)
+	db, err := db.NewDynamoDbClient(env.GetString("AWS_REGION", "us-east-1"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error creating dynamodb client: %w", err)
 	}
 
-	defer db.Close()
-	log.Printf("database connection pool established")
-
+	log.Printf("dynamodb client has been loaded successfully")
 	// connect database to store
 	store := store.NewStorage(db)
 
 	// connect store to server
 	service := services.NewService(store)
+	config := config{
+		addr: env.GetString("ADDR", ":8080"),
+	}
 
 	// create application
 	app := &application{
-		config:  cfg,
 		service: service,
+		config:  config,
 	}
 
 	mux := app.mount()
