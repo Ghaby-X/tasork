@@ -1,11 +1,12 @@
 resource "aws_cognito_user_pool" "this" {
   name = var.user_pool_name
 
+  username_attributes      = ["email"]
+  auto_verified_attributes = ["email"]
+
   password_policy {
     minimum_length = 8
   }
-
-  auto_verified_attributes = ["email"]
 
   account_recovery_setting {
     recovery_mechanism {
@@ -31,3 +32,7 @@ resource "aws_cognito_user_pool_client" "this" {
   callback_urls                = var.callback_urls
 }
 
+resource "aws_cognito_user_pool_domain" "this" {
+  domain       = "tasork"
+  user_pool_id = aws_cognito_user_pool.this.id
+}
