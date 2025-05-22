@@ -2,12 +2,15 @@ package store
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
+
+	"github.com/Ghaby-X/tasork/internal/env"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type TasksStore struct {
-	db *sql.DB
+	db *dynamodb.Client
 }
 
 type Task struct {
@@ -18,25 +21,25 @@ type Task struct {
 	UpdatedAt   string `json:"updated_at"`
 }
 
-func (s *TasksStore) Create(ctx context.Context, task *Task) error {
-	query := `
-				INSERT INTO tasks (title, description)
-				WHERE ($1, $2) RETURNING id, created_at, updated_at;
-	`
-
-	fmt.Println(query)
-
-	return nil
-}
-
-func (s *TasksStore) GetAllTasks() (*Task, error) {
-	sample_task := Task{
-		100,
-		"Get your hair done",
-		"My first task",
-		"2024-12-12",
-		"2024-12-12",
+func (s *TasksStore) Create(ctx context.Context, task *Task) (*dynamodb.PutItemOutput, error) {
+	tableName := env.GetString("DYNAMODB_TABLE_NAME", "tasork")
+	item := map[string]types.AttributeValue{
+		"PartitionKey": &types.AttributeValueMemberS{Value: "Task1"},
+		"SortKey":      &types.AttributeValueMemberS{Value: "taskSort"},
+		"taskId":       &types.AttributeValueMemberN{Value: "123"},
+		"taskTitle":    &types.AttributeValueMemberS{Value: "Get your hair done"},
+		"age":          &types.AttributeValueMemberN{Value: "30"},
 	}
 
-	return &sample_task, nil
+	input := &dynamodb.PutItemInput{
+		TableName: aws.String(tableName),
+		Item:      item,
+	}
+
+	result, err := s.db.PutItem(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

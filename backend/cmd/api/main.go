@@ -7,6 +7,7 @@ import (
 	"github.com/Ghaby-X/tasork/internal/env"
 	"github.com/Ghaby-X/tasork/internal/services"
 	"github.com/Ghaby-X/tasork/internal/store"
+	"github.com/Ghaby-X/tasork/internal/types"
 	"github.com/lpernett/godotenv"
 )
 
@@ -19,7 +20,7 @@ func main() {
 
 	db, err := db.NewDynamoDbClient(env.GetString("AWS_REGION", "us-east-1"))
 	if err != nil {
-		log.Fatalf("Error creating dynamodb client: %w", err)
+		log.Fatalf("Error creating dynamodb client: %v", err)
 	}
 
 	log.Printf("dynamodb client has been loaded successfully")
@@ -28,8 +29,18 @@ func main() {
 
 	// connect store to server
 	service := services.NewService(store)
+
+	// config for app
+	cognitoConfig := &types.CongitoConfig{
+		Domain:      env.GetString("COGNITO_DOMAIN", ""),
+		ClientId:    env.GetString("COGNITO_CLIENTID", ""),
+		RedirectURL: env.GetString("COGNITO_REDIRECT_URL", ""),
+		Region:      env.GetString("COGNITO_REGION", ""),
+	}
+
 	config := config{
-		addr: env.GetString("ADDR", ":8080"),
+		addr:          env.GetString("ADDR", ":8080"),
+		cognitoConfig: cognitoConfig,
 	}
 
 	// create application

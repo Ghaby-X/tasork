@@ -1,4 +1,4 @@
-package user
+package handler
 
 import (
 	"fmt"
@@ -9,28 +9,28 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type Handler struct {
+type UserHandler struct {
 	service *services.UsersService
 }
 
-func NewHandler(services *services.UsersService) *Handler {
-	return &Handler{
+func NewUserHandler(services *services.UsersService) *UserHandler {
+	return &UserHandler{
 		services,
 	}
 }
 
-func (h *Handler) RegisterRoutes(r chi.Router) {
+func (h *UserHandler) RegisterRoutes(r chi.Router) {
 	r.Route("/users", func(r chi.Router) {
 		r.Get("/", h.GetAllUsers)
 		r.Get("/id", h.GetUserById)
 	})
 }
 
-func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Hello world"))
 }
 
-func (h *Handler) GetUserById(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) GetUserById(w http.ResponseWriter, r *http.Request) {
 	sample_user := h.service.GetUserById(109)
 	fmt.Println(sample_user)
 	utils.WriteJSON(w, 200, sample_user)

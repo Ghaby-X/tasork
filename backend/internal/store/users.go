@@ -2,11 +2,12 @@ package store
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
 type UsersStore struct {
-	db *sql.DB
+	db *dynamodb.Client
 }
 
 func (s *UsersStore) Create(ctx context.Context) error {
