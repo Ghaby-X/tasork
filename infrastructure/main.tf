@@ -14,6 +14,5 @@ provider "aws" {
 module "cognito" {
   source         = "./modules/cognito"
   user_pool_name = "tasork_user_pool"
-  callback_urls  = ["http://localhost:3000/register"]
-
+  callback_urls  = ["http://localhost:3000/auth/resolve"]
 }

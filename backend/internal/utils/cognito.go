@@ -1,10 +1,16 @@
 package utils
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 
+	"github.com/Ghaby-X/tasork/internal/env"
+	"github.com/Ghaby-X/tasork/internal/types"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 )
@@ -45,4 +51,51 @@ func (c *CognitoClient) GetAuthURL(domain, region, clientId, redirectURL string)
 
 	u.RawQuery = q.Encode()
 	return u.String()
+}
+
+// exchange authorization code for tokens url
+func (c *CognitoClient) RetrieveTokensFromAuthorizationCode(authCode, domain, clientId, clientSecret, redirectURL string) (*types.TokenResponse, error) {
+	tokenURL := fmt.Sprintf("https://%s/oauth2/token?grant_type=authorization_code&code=%s&redirect_uri=%s&client_id=%s", domain, authCode, redirectURL, clientId)
+
+	req, err := http.NewRequest("POST", tokenURL, bytes.NewBufferString(""))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request %w", err)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// Make request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make http request %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response, %w", err)
+	}
+
+	// Check for non-200 status
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("token exchange failed: status %d", resp.StatusCode)
+	}
+
+	var tokens types.TokenResponse
+	if err := json.Unmarshal(body, &tokens); err != nil {
+		return nil, fmt.Errorf("failed to parse token %w", err)
+	}
+
+	return &tokens, nil
+}
+
+func ConstructTokenVerifyURL() string {
+	region := env.GetString("AWS_DEFAULT_REGION", "us-east-1")
+	poolId := env.GetString("COGNITO_USER_POOL_ID", "")
+	url := fmt.Sprintf("https://cognito-idp.%s.amazonaws.com/%s/.well-known/jwks.json", region, poolId)
+
+	return url
 }

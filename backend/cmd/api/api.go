@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Ghaby-X/tasork/internal/env"
 	handler "github.com/Ghaby-X/tasork/internal/handlers"
 	"github.com/Ghaby-X/tasork/internal/services"
 	"github.com/Ghaby-X/tasork/internal/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 // config to store server configuration
@@ -30,6 +32,14 @@ func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
 
 	// use logger and recoverer middleware
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{env.GetString("WEB_URL", "http://localhost:3000")},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)

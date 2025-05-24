@@ -32,10 +32,11 @@ func main() {
 
 	// config for app
 	cognitoConfig := &types.CongitoConfig{
-		Domain:      env.GetString("COGNITO_DOMAIN", ""),
-		ClientId:    env.GetString("COGNITO_CLIENTID", ""),
-		RedirectURL: env.GetString("COGNITO_REDIRECT_URL", ""),
-		Region:      env.GetString("COGNITO_REGION", ""),
+		Domain:       env.GetString("COGNITO_DOMAIN", ""),
+		ClientId:     env.GetString("COGNITO_CLIENTID", ""),
+		ClientSecret: env.GetString("COGNITO_CLIENTSECRET", ""),
+		RedirectURL:  env.GetString("COGNITO_REDIRECT_URL", ""),
+		Region:       env.GetString("COGNITO_REGION", ""),
 	}
 
 	config := config{
