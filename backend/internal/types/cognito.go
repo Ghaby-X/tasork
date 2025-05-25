@@ -28,6 +28,7 @@ type AllTokens struct {
 
 type RegisterTenantDTO struct {
 	TenantName string `json:"tenantName"`
+	UserName   string `json:"userName"`
 }
 
 type RegisterAdminTenantParam struct {

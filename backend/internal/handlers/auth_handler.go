@@ -37,6 +37,7 @@ func (h *AuthHandler) RegisterRoutes(r chi.Router) {
 		r.Get("/login", h.handleLogin)
 		r.Get("/ping", h.handlePing)
 		r.Get("/token", h.handleToken)
+		r.Post("/acceptInvite/{tenantId}/{inviteToken}", h.handleAcceptInvite)
 		r.With(h.service.AuthorizeRegistrationMiddleWare).Post("/registerTenant", h.handleTenantRegistration)
 	})
 }
@@ -129,4 +130,45 @@ func (h *AuthHandler) handleTenantRegistration(w http.ResponseWriter, r *http.Re
 	})
 
 	utils.WriteJSON(w, http.StatusOK, internal_types.SendJsonResponse{Message: "tenant registered successfully"})
+}
+
+// accept user from invite token
+func (h *AuthHandler) handleAcceptInvite(w http.ResponseWriter, r *http.Request) {
+	// get request body
+	// Get user from dto objects from body
+	var RequestDTO internal_types.InviteUserDTo
+	inviteToken := chi.URLParam(r, "inviteToken")
+	tenantId := chi.URLParam(r, "tenantId")
+
+	err := utils.ParseJSONBody(r, &RequestDTO)
+	if err != nil || len(RequestDTO.Password) < 8 || len(RequestDTO.Username) < 3 {
+		log.Printf("could not parse user body: %v", err)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("all fields are required"))
+		return
+	}
+
+	// fetch invite
+	inviteDetails, err := h.service.FetchInvite(inviteToken, tenantId)
+	if err != nil {
+		log.Printf("failed to fetch invite: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to fetch invite details"))
+		return
+	}
+
+	if len(inviteDetails.PartitionKey) < 2 || len(inviteDetails.SortKey) < 1 {
+		log.Printf("Invite token is not valid: %v", inviteDetails)
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("bad invite token"))
+		return
+	}
+
+	// Create User from token
+	err = h.service.CreateUserFromInvite(h.cognitoClient, inviteDetails, RequestDTO)
+	if err != nil {
+		log.Printf("failed to create invite from user:\n %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to create invite"))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, internal_types.SendJsonResponse{Message: "user enrolled successfully"})
+
 }

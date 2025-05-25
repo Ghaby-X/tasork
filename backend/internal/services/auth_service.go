@@ -13,6 +13,8 @@ import (
 	internal_types "github.com/Ghaby-X/tasork/internal/types"
 	"github.com/Ghaby-X/tasork/internal/utils"
 	"github.com/MicahParks/keyfunc/v3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	cip_types "github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -164,6 +166,8 @@ func (s *AuthService) RegisterAdminTenant(cognitoClient *cognitoidentityprovider
 	// update attributes in cognito
 	poolId := env.GetString("COGNITO_USER_POOL_ID", "")
 	userName := claims["cognito:username"]
+	email := claims["email"]
+	preferred_username := RequestBody.UserName
 	tenantNameStr := "custom:tenantName"
 	tenantIDStr := "custom:tenantId"
 	roleStr := "custom:role"
@@ -194,6 +198,8 @@ func (s *AuthService) RegisterAdminTenant(cognitoClient *cognitoidentityprovider
 		"PartitionKey": &types.AttributeValueMemberS{Value: tenantId},
 		"SortKey":      &types.AttributeValueMemberS{Value: userId},
 		"role":         &types.AttributeValueMemberS{Value: "admin"},
+		"userName":     &types.AttributeValueMemberS{Value: preferred_username},
+		"email":        &types.AttributeValueMemberS{Value: email},
 	}
 
 	tableName := env.GetString("DYNAMODB_TABLE_NAME", "tasork")
@@ -204,4 +210,123 @@ func (s *AuthService) RegisterAdminTenant(cognitoClient *cognitoidentityprovider
 	}
 
 	return output, err
+}
+
+// Create User from invite
+func (s *AuthService) CreateUserFromInvite(cognitoClient *utils.CognitoClient, InviteTokenDetails *internal_types.RetrievedInviteDetails, RequestBody internal_types.InviteUserDTo) error {
+	userpoolId := env.GetString("COGNITO_USER_POOL_ID", "")
+	tableName := env.GetString("DYNAMODB_TABLE_NAME", "tasork")
+
+	// create user in cognito
+	userInput := cognitoidentityprovider.AdminCreateUserInput{
+		UserPoolId: &userpoolId,
+		Username:   aws.String(InviteTokenDetails.Email),
+		UserAttributes: []cip_types.AttributeType{
+			{Name: aws.String("email"), Value: aws.String(InviteTokenDetails.Email)},
+			{Name: aws.String("email_verified"), Value: aws.String("true")},
+			{Name: aws.String("custom:role"), Value: aws.String(InviteTokenDetails.Role)},
+			{Name: aws.String("custom:tenantId"), Value: aws.String(InviteTokenDetails.SortKey)},
+			{Name: aws.String("custom:username"), Value: aws.String(RequestBody.Username)},
+		},
+	}
+	output, err := cognitoClient.Client.AdminCreateUser(context.Background(), &userInput)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("%v", output)
+
+	// Extract the "sub" from the response
+	var userID string
+	for _, attr := range output.User.Attributes {
+		if *attr.Name == "sub" {
+			userID = *attr.Value
+			break
+		}
+
+	}
+	if userID == "" {
+		return fmt.Errorf("sub not found in Cognito response")
+	}
+
+	// set password
+	_, err = cognitoClient.Client.AdminSetUserPassword(context.Background(), &cognitoidentityprovider.AdminSetUserPasswordInput{
+		UserPoolId: aws.String(userpoolId),
+		Username:   aws.String(InviteTokenDetails.Email),
+		Password:   aws.String(RequestBody.Password),
+		Permanent:  true,
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to set permanent password: %w", err)
+	}
+
+	// input items to create user and also delete invite
+	writeRequests := dynamodb.BatchWriteItemInput{
+		RequestItems: map[string][]types.WriteRequest{
+			tableName: {
+				// Put user item
+				{
+					PutRequest: &types.PutRequest{
+						Item: map[string]types.AttributeValue{
+							"PartitionKey": &types.AttributeValueMemberS{Value: InviteTokenDetails.SortKey},
+							"SortKey":      &types.AttributeValueMemberS{Value: "USER#" + userID},
+							"role":         &types.AttributeValueMemberS{Value: InviteTokenDetails.Role},
+							"userName":     &types.AttributeValueMemberS{Value: RequestBody.Username},
+							"email":        &types.AttributeValueMemberS{Value: InviteTokenDetails.Email},
+						},
+					},
+				},
+				// Delete invite item
+				{
+					DeleteRequest: &types.DeleteRequest{
+						Key: map[string]types.AttributeValue{
+							"PartitionKey": &types.AttributeValueMemberS{Value: InviteTokenDetails.PartitionKey},
+							"SortKey":      &types.AttributeValueMemberS{Value: InviteTokenDetails.SortKey},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// create user in db - item
+	err = s.store.BatchWriteItem(&writeRequests)
+	if err != nil {
+		log.Printf("failed to create user from invite %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *AuthService) FetchInvite(inviteToken, tenantId string) (*internal_types.RetrievedInviteDetails, error) {
+	PartitionKey := "INVITE#" + inviteToken
+	SortKey := "TENANT#" + tenantId
+	tableName := env.GetString("DYNAMODB_TABLE_NAME", "tasork")
+
+	queryInput := dynamodb.GetItemInput{
+		Key: map[string]types.AttributeValue{
+			"PartitionKey": &types.AttributeValueMemberS{Value: PartitionKey},
+			"SortKey":      &types.AttributeValueMemberS{Value: SortKey},
+		},
+		TableName: &tableName,
+	}
+
+	// get output from db
+	output, err := s.store.GetItem(queryInput)
+	if err != nil {
+		log.Printf("failed to get item: %v", err)
+		return nil, err
+	}
+
+	// marshal output
+	var inviteDetails internal_types.RetrievedInviteDetails
+	err = attributevalue.UnmarshalMap(output.Item, &inviteDetails)
+	if err != nil {
+		log.Printf("failed to parse json: %v", err)
+		return nil, err
+	}
+
+	return &inviteDetails, nil
 }
