@@ -48,11 +48,11 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	// Defining user routes
-	userHandler := handler.NewUserHandler(app.service.Users)
+	userHandler := handler.NewUserHandler(app.service.Users, app.service.Auth)
 	userHandler.RegisterRoutes(r)
 
 	// Defining task routes
-	taskHandler := handler.NewTaskHandler(app.service.Tasks)
+	taskHandler := handler.NewTaskHandler(app.service.Tasks, app.service.Auth)
 	taskHandler.RegisterRoutes(r)
 
 	// Defining auth routes
