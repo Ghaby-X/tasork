@@ -13,6 +13,7 @@ interface Task {
   description: string;
   status: 'pending' | 'in_progress' | 'completed' | 'healthy' | 'at_risk' | 'behind';
   assignedTo: string;
+  assigneeName?: string;
   dueDate: string;
   createdAt: string;
   updatedAt: string;

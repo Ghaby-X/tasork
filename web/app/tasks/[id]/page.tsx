@@ -45,8 +45,11 @@ export default function TaskDetailPage({ params }: { params: { id: string } }) {
       await updateTask(currentTask.id, { status });
       setSuccessMessage('Task status updated successfully');
       
-      // Update the current task in the store
-      setCurrentTask({ ...currentTask, status });
+      // Update the current task in the store with properly typed status
+      setCurrentTask({ 
+        ...currentTask, 
+        status: status as 'pending' | 'in_progress' | 'completed' | 'healthy' | 'at_risk' | 'behind' 
+      });
     } catch (err) {
       setError('Failed to update task status');
       console.error(err);

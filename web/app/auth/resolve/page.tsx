@@ -5,6 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { parseCookies } from 'nookies';
 import { jwtDecode } from 'jwt-decode'
 
+// Define a custom interface for the JWT payload
+interface CustomJwtPayload {
+  email?: string;
+  sub?: string;
+  'custom:tenantId'?: string;
+  'custom:tenantName'?: string;
+  [key: string]: any;
+}
+
 export default function AuthResolvePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -37,7 +46,7 @@ export default function AuthResolvePage() {
         // Parse cookies to check for tenantId
         const cookies = parseCookies();
         const id_token_raw = cookies['id_token'];
-        const id_token = id_token_raw ? jwtDecode((id_token_raw) ): null;
+        const id_token = id_token_raw ? jwtDecode<CustomJwtPayload>((id_token_raw)) : null;
 
         if (!id_token || !id_token.email || !id_token.sub) {
             throw new Error('Invalid code')
