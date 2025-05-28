@@ -4,18 +4,19 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function RegisterPage() {
+export default function RegisterPage({params} : {params: {tenantId: string, inviteId: string }}) {
   const router = useRouter();
   const [username, setUsername] = useState('');
-  const [organization, setOrganization] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isCancelLoading, setIsCancelLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !organization || username.length < 3 || organization.length < 3) {
-      setError('Please fill in all fields and they must be greater than 3');
+    if (!username || !password || username.length < 3 || password.length < 8) {
+      setError('Password must be greater than 8 characters\nUsername field is required');
       return;
     }
     
@@ -24,18 +25,15 @@ export default function RegisterPage() {
     
     try {
       // In a real app, this would call your API
-      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/auth/registerTenant', {
+      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + `/auth/acceptInvite/${params.tenantId}/${params.inviteId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ "username": username, "tenantName": organization }),
+        body: JSON.stringify({ "username": username, "password": password }),
       });
       
-      if (response.status == 401) {
-        throw new Error('Unauthorized - try login in again');
-      }
       if (!response.ok) {
         throw new Error('Registration failed');
       }
@@ -54,7 +52,7 @@ export default function RegisterPage() {
     <div className="flex items-center justify-center h-screen w-screen">
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Create your <span className="text-blue-600">Account</span></h1>
+          <h1 className="text-3xl font-bold">Join your <span className="text-blue-600">Team</span></h1>
           {/* <p className="mt-2 text-gray-500">Create your account</p> */}
         </div>
         
@@ -81,21 +79,31 @@ export default function RegisterPage() {
           </div>
           
           <div>
-            <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-1">
-              Organization/Team Name
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Password
             </label>
             <input
-              id="organization"
+              id="password"
               type="text"
-              value={organization}
-              onChange={(e) => setOrganization(e.target.value)}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter your organization or team name"
+              placeholder="password"
               required
             />
           </div>
           
-          <div>
+          <div className='flex gap-2'>
+            <button
+              disabled={isCancelLoading}
+              onClick={() => {
+                setIsCancelLoading(true)
+                router.push('/')
+                }}
+              className="w-full py-2 px-4 bg-red-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+            >
+              {isCancelLoading ? 'canceling...' : 'Deny'}
+            </button>
             <button
               type="submit"
               disabled={isLoading}
