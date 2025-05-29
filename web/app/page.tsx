@@ -3,7 +3,7 @@ import Link from "next/link"
 
 // get login url from backend
 const getLoginURL = async () => {
-  const base_url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+  const base_url = process.env.NEXT_PUBLIC_API_URL
   const login_url = base_url + "/auth/login"
 
   try {
@@ -12,17 +12,22 @@ const getLoginURL = async () => {
       throw new Error(`failed to load login page`)
     }
 
+    console.log(response)
+
     const res = await response.json()
+    console.log(res)
     return res
   } catch (error) {
     console.error("Error fetching login URL:", error)
-    return { login_url: "/" } // Fallback URL
+    return
   }
 }
 
 const Page = async () => {
   // gets login url from server
-  const { login_url = "/" } = await getLoginURL()
+  const { login_url } = await getLoginURL()
+
+  console.log(login_url)
 
   return (
     <div className="flex items-center justify-center h-screen w-screen flex-col gap-2">
