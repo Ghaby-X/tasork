@@ -35,3 +35,11 @@ func (s *AuthStore) BatchWriteItem(BatchInput *dynamodb.BatchWriteItemInput) err
 	_, err := s.db.BatchWriteItem(context.Background(), BatchInput)
 	return err
 }
+
+func (s *AuthStore) CreateItem(tableName string, Item map[string]types.AttributeValue) (*dynamodb.PutItemOutput, error) {
+	output, err := utils.InsertIntoDB(s.db, tableName, Item)
+	if err != nil {
+		return nil, err
+	}
+	return output, nil
+}

@@ -69,6 +69,7 @@ func (h *AuthHandler) handlePing(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) handleToken(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	if code == "" {
+		log.Printf("code was not present in request : %v", code)
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("missing authorization code in query"))
 		return
 	}
@@ -83,7 +84,8 @@ func (h *AuthHandler) handleToken(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to retrieve token %w", err))
+		log.Printf("failed to retrieve tokens from authorization code %v", err)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("failed to retrieve token %w", err))
 		return
 	}
 
@@ -103,8 +105,8 @@ func (h *AuthHandler) handleTenantRegistration(w http.ResponseWriter, r *http.Re
 	var RequestBody internal_types.RegisterTenantDTO
 	err = json.NewDecoder(r.Body).Decode(&RequestBody)
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("could not decode json input"))
 		log.Printf("could not decode json: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("could not decode json input"))
 		return
 	}
 
@@ -118,7 +120,7 @@ func (h *AuthHandler) handleTenantRegistration(w http.ResponseWriter, r *http.Re
 	// retrieve and set updated tokens from cognito
 	tokens_updated, err := h.service.RetrieveTokensFromRefreshToken(r, h.cognitoClient, h.cognitoConfig.ClientId, h.cognitoConfig.ClientSecret)
 	if err != nil {
-		log.Print("failed to retrieve refresh token")
+		log.Printf("failed to retrieve refresh token %v", err)
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("failed to retrieve token\n %w", err))
 		return
 	}

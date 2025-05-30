@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/Ghaby-X/tasork/internal/env"
 	"github.com/Ghaby-X/tasork/internal/store"
@@ -22,7 +23,7 @@ func NewTaskService(taskstore *store.TasksStore) *TasksService {
 	return &TasksService{taskstore}
 }
 
-func (s *TasksService) CreateTask(data *internal_types.CreateTaskDTO, user internal_types.TokenClaims, taskUUID string) error {
+func (s *TasksService) CreateTask(data *internal_types.CreateTaskDTO, user internal_types.TokenClaims, taskUUID string, customMessage ...string) error {
 	taskId := "TASK#" + taskUUID
 	createdBy := "USER#" + user["sub"]
 	tenantId := user["custom:tenantId"]
@@ -81,6 +82,17 @@ func (s *TasksService) CreateTask(data *internal_types.CreateTaskDTO, user inter
 						"createdby":    &types.AttributeValueMemberS{Value: createdBy},
 						"email":        &types.AttributeValueMemberS{Value: userStruct.Email},
 						"userName":     &types.AttributeValueMemberS{Value: userStruct.Username},
+					},
+				},
+			},
+			// Notification Item
+			types.WriteRequest{
+				PutRequest: &types.PutRequest{
+					Item: map[string]types.AttributeValue{
+						"PartitionKey": &types.AttributeValueMemberS{Value: userStruct.UserId},
+						"SortKey":      &types.AttributeValueMemberS{Value: "NOTIFICATION#" + uuid.NewString()},
+						"message":      &types.AttributeValueMemberS{Value: fmt.Sprintf("'%s' has been assigned to you", data.Tasktitle)},
+						"time":         &types.AttributeValueMemberS{Value: time.Now().Format(time.RFC3339)},
 					},
 				},
 			},

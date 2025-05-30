@@ -2,10 +2,11 @@ package types
 
 // DTO for user creation and retrieving
 type CreateUser struct {
-	Username string `json:"userName"`
-	Email    string `json:"email"`
-	Role     string `json:"role"`
-	SortKey  string `json:"userId"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Role      string `json:"role"`
+	SortKey   string `json:"userId"`
+	CreatedAt string `json:"createdAt"`
 }
 
 // DTO for user invite
@@ -26,4 +27,12 @@ type RetrievedInviteDetails struct {
 	SortKey      string `json:"tenantId"`
 	Email        string `json:"email"`
 	Role         string `json:"role"`
+}
+
+// Notification DTO
+type NotificationDTO struct {
+	PartitionKey string `json:"userId"`
+	SortKey      string `json:"notificationId"`
+	Message      string `json:"message"`
+	Time         string `json:"time"`
 }

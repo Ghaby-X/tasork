@@ -22,7 +22,11 @@ type CognitoClient struct {
 
 // return a new cognito client
 func NewCognitoClient(appClientId string) (*CognitoClient, error) {
-	cfg, err := config.LoadDefaultConfig(context.Background())
+	// cognito_aws_access_key := env.GetString("COGNITO_ACCESS_KEY", "")
+	// cognito_aws_secret_key := env.GetString("COGNITO_SECRET_KEY", "")
+	// cognito_region := env.GetString("COGNITO_REGION", "")
+	aws_region := env.GetString("AWS_REGION", "")
+	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(aws_region))
 	if err != nil {
 		return nil, fmt.Errorf("could not load AWS config: %w", err)
 	}
@@ -47,7 +51,7 @@ func (c *CognitoClient) GetAuthURL(domain, region, clientId, redirectURL string)
 	q.Set("response_type", "code")
 	q.Set("client_id", clientId)
 	q.Set("redirect_uri", redirectURL)
-	q.Set("lang", "es")
+	q.Set("lang", "en")
 
 	u.RawQuery = q.Encode()
 	return u.String()
@@ -57,6 +61,13 @@ func (c *CognitoClient) GetAuthURL(domain, region, clientId, redirectURL string)
 func (c *CognitoClient) RetrieveTokensFromAuthorizationCode(authCode, domain, clientId, clientSecret, redirectURL string) (*types.TokenResponse, error) {
 	tokenURL := fmt.Sprintf("https://%s/oauth2/token?grant_type=authorization_code&code=%s&redirect_uri=%s&client_id=%s", domain, authCode, redirectURL, clientId)
 
+	// Prepare form data in the body
+	form := url.Values{}
+	form.Set("grant_type", "authorization_code")
+	form.Set("code", authCode)
+	form.Set("redirect_uri", redirectURL)
+	form.Set("client_id", clientId)
+
 	req, err := http.NewRequest("POST", tokenURL, bytes.NewBufferString(""))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request %w", err)
@@ -64,6 +75,7 @@ func (c *CognitoClient) RetrieveTokensFromAuthorizationCode(authCode, domain, cl
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.SetBasicAuth(clientId, clientSecret)
 
 	// Make request
 	client := &http.Client{}
@@ -93,7 +105,7 @@ func (c *CognitoClient) RetrieveTokensFromAuthorizationCode(authCode, domain, cl
 }
 
 func ConstructTokenVerifyURL() string {
-	region := env.GetString("AWS_DEFAULT_REGION", "us-east-1")
+	region := env.GetString("AWS_DEFAULT_REGION", "eu-west-1")
 	poolId := env.GetString("COGNITO_USER_POOL_ID", "")
 	url := fmt.Sprintf("https://cognito-idp.%s.amazonaws.com/%s/.well-known/jwks.json", region, poolId)
 

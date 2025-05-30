@@ -28,6 +28,7 @@ func (h *UserHandler) RegisterRoutes(r chi.Router) {
 	r.With(h.AuthService.AuthorizeRegistrationMiddleWare).Route("/users", func(r chi.Router) {
 		r.Get("/", h.GetAllUsers)
 		r.Post("/invite", h.handleInviteUsers)
+		r.Post("/notification", h.handleGetNotifications)
 	})
 }
 
@@ -54,6 +55,7 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) handleInviteUsers(w http.ResponseWriter, r *http.Request) {
 	user := utils.GetUserFromRequest(r)
 	tenantId := user["custom:tenantId"]
+	tenantName := user["custom:username"]
 
 	var InviteUserDTO internal_types.UserInvite
 
@@ -66,11 +68,28 @@ func (h *UserHandler) handleInviteUsers(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// create invite in database and send email
-	err = h.service.CreateInviteUser(InviteUserDTO, tenantId)
+	err = h.service.CreateInviteUser(InviteUserDTO, tenantId, tenantName)
 	if err != nil {
 		log.Printf("failed to create invite user: %v", err)
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("failed to send invite"))
 	}
 
 	utils.WriteJSON(w, http.StatusOK, internal_types.SendJsonResponse{Message: "Invite sent successfully"})
+}
+
+// get notifications of a user
+func (h *UserHandler) handleGetNotifications(w http.ResponseWriter, r *http.Request) {
+	user := utils.GetUserFromRequest(r)
+	userId := "USER#" + user["sub"]
+	tableName := env.GetString("DYNAMODB_TABLE_NAME", "")
+
+	// get notifications from service
+	notifications, err := h.service.GetNotifications(userId, tableName)
+	if err != nil {
+		log.Printf("failed to retrieve notifications: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to retrieve notifications"))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, notifications)
 }

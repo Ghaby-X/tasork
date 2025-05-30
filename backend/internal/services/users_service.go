@@ -52,12 +52,14 @@ func (s *UsersService) GetAllUsers(tenantId, tableName string) ([]internal_types
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("%v", retrievedUsers.Items)
+	log.Printf("%v", UserStruct)
 
 	return UserStruct, nil
 }
 
 // creating user invite
-func (s *UsersService) CreateInviteUser(userDto internal_types.UserInvite, tenantId string) error {
+func (s *UsersService) CreateInviteUser(userDto internal_types.UserInvite, tenantId, tenantName string) error {
 	inviteUUID := uuid.NewString()
 	tenantUUID, err := getUUIDfromString(tenantId)
 	if err != nil {
@@ -90,7 +92,11 @@ func (s *UsersService) CreateInviteUser(userDto internal_types.UserInvite, tenan
 		log.Printf("error storing user in database %v", err)
 		return err
 	}
-	fmt.Printf("%s", inviteURL)
+	err = SendInvitationMail(userDto.Email, tenantName, inviteURL)
+	if err != nil {
+		log.Printf("failed to send user invite mail %v", err)
+		return err
+	}
 	return nil
 }
 
@@ -107,4 +113,33 @@ func getUUIDfromString(IdStr string) (string, error) {
 	}
 
 	return res[1], nil
+}
+
+func (s *UsersService) GetNotifications(userId string, tableName string) ([]internal_types.NotificationDTO, error) {
+	// need user id - primarykey from token claims
+	queryInput := dynamodb.QueryInput{
+		TableName:              aws.String(tableName),
+		KeyConditionExpression: aws.String("PartitionKey = :pk AND begins_with(SortKey, :skprefix)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":pk":       &types.AttributeValueMemberS{Value: userId},
+			":skprefix": &types.AttributeValueMemberS{Value: "NOTIFICATION#"},
+		},
+	}
+
+	// get users with query input
+	retrievedNotifications, err := s.store.QueryDB(queryInput)
+	if err != nil {
+		return nil, err
+	}
+
+	// marshal users
+	var notificationStruct []internal_types.NotificationDTO
+	err = attributevalue.UnmarshalListOfMaps(retrievedNotifications.Items, &notificationStruct)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("%v", retrievedNotifications.Items)
+	log.Printf("%v", notificationStruct)
+
+	return notificationStruct, nil
 }
