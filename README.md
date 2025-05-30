@@ -56,7 +56,6 @@ Tasork is a serverless task management system built for field teams using AWS se
 
 5. Run locally:
    - Backend: `cd backend && make run`
-   - Frontend: `cd web-new && npm run dev`
 
 ## Deployment
 
@@ -65,14 +64,6 @@ Tasork is a serverless task management system built for field teams using AWS se
 ```
 cd backend
 make deploy
-```
-
-### Frontend Deployment
-
-```
-cd web-new
-npm run build
-npm run deploy
 ```
 
 ### Infrastructure Deployment
@@ -87,7 +78,6 @@ terraform apply
 
 For more detailed documentation:
 - Backend API: See `/backend/README.md`
-- Frontend: See `/web-new/README.md`
 - Infrastructure: See `/infrastructure/README.md`
 
 ## License
