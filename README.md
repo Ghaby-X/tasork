@@ -5,8 +5,12 @@ Tasork is a serverless task management system built for field teams using AWS se
 ## Project Structure
 
 - `/backend` - Go backend API using AWS Lambda and DynamoDB
-- `/web-new` - Next.js frontend application
 - `/infrastructure` - Terraform IaC for AWS resources
+
+## Project Architecture
+
+![image](https://github.com/user-attachments/assets/3a70a6a1-04d5-4ef1-9ff3-41eda4e0a491)
+
 
 ## Features
 
