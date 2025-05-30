@@ -1,11 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   reactStrictMode: false,
   images: {
-    unoptimized: true
+    domains: ['localhost'],
   },
-  trailingSlash: true
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: process.env.NEXT_PUBLIC_API_URL + '/:path*',
+      },
+    ];
+  },
 }
 
 module.exports = nextConfig

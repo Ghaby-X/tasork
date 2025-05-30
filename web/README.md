@@ -1,22 +1,19 @@
-# Task Management System UI
+# Tasork Web Application
 
-A Next.js-based UI for a Task Management System designed for field teams. This application allows admins to create and assign tasks to team members, while team members can view and update their assigned tasks.
+A modern task management system built with Next.js that integrates with the Tasork backend API.
 
 ## Features
 
-- User authentication (admin and team member roles)
-- Dashboard with task overview
-- Task listing with filtering by status
-- Task creation and assignment
-- Task status updates
-- Team member management
+- User authentication with AWS Cognito
+- Task management (create, view, update, delete)
+- Dashboard with task statistics
+- Responsive design
 
 ## Tech Stack
 
-- Next.js 14 with App Router
-- React 18
+- Next.js 14
 - TypeScript
-- Tailwind CSS for styling
+- Tailwind CSS
 - Zustand for state management
 - Axios for API requests
 
@@ -29,54 +26,39 @@ A Next.js-based UI for a Task Management System designed for field teams. This a
 ### Installation
 
 1. Clone the repository
-2. Install dependencies:
+2. Navigate to the web directory:
+   ```bash
+   cd web-new
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Create a `.env.local` file with the following variables:
+   ```
+   NEXT_PUBLIC_API_URL=http://localhost:8080
+   ```
 
-```bash
-cd task-management-ui
-npm install
-```
+### Development
 
-3. Create a `.env.local` file in the root directory with your API endpoint:
-
-```
-NEXT_PUBLIC_API_URL=https://your-api-endpoint.com
-```
-
-4. Start the development server:
+Run the development server:
 
 ```bash
 npm run dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Project Structure
-
-- `/app` - Next.js App Router pages
-- `/components` - Reusable React components
-- `/lib` - Utility functions and API services
-- `/public` - Static assets
-
-## Development Notes
-
-- This UI is designed to work with a serverless backend API
-- For development purposes, the application uses mock data
-- To connect to a real API, update the API_URL in `/lib/api.ts`
-
-## Deployment
-
-Build the application for production:
+### Building for Production
 
 ```bash
 npm run build
 ```
 
-Start the production server:
+## Deployment
 
-```bash
-npm start
-```
+This application can be deployed to AWS Amplify. See the Amplify documentation for details on deployment.
 
-## License
+## Integration with Backend
 
-MIT
+This frontend is designed to work with the Tasork backend API. Make sure the backend is running and accessible at the URL specified in your `.env.local` file.

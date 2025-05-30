@@ -54,7 +54,7 @@ export default function AuthResolvePage() {
 
         // Check if user has a tenant ID
         if (id_token['custom:tenantId'] && id_token['custom:tenantName']) {
-            router.push('/tasks');
+            router.push('/protected/tasks');
             return
         } else {
           router.push('/auth/register');
